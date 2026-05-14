@@ -1,0 +1,1860 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 1.0.0
+  description: AMUPF Digital Management System API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: users
+  - name: reports
+  - name: members
+  - name: tasks
+  - name: announcements
+  - name: events
+  - name: departments
+  - name: delegations
+  - name: notifications
+  - name: analytics
+  - name: attendance
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # --- AUTH ---
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registration submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [auth]
+      summary: Refresh access token
+      responses:
+        "200":
+          description: New access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+
+  # --- DEPARTMENTS ---
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [departments]
+      summary: List all departments
+      responses:
+        "200":
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+    post:
+      operationId: createDepartment
+      tags: [departments]
+      summary: Create a department (President only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+
+  /departments/{id}:
+    get:
+      operationId: getDepartment
+      tags: [departments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+    patch:
+      operationId: updateDepartment
+      tags: [departments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+
+  # --- USERS / KYC ---
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users (President/Executive)
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: is_approved
+          in: query
+          schema:
+            type: boolean
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/approve:
+    post:
+      operationId: approveKyc
+      tags: [users]
+      summary: Approve KYC for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/reject:
+    post:
+      operationId: rejectKyc
+      tags: [users]
+      summary: Reject KYC for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectKycInput"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/kyc-queue:
+    get:
+      operationId: getKycQueue
+      tags: [users]
+      summary: Get pending KYC applications
+      responses:
+        "200":
+          description: Pending KYC users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  # --- INCIDENT REPORTS ---
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List incident reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          schema:
+            type: string
+        - name: date_to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Submit an incident report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+    patch:
+      operationId: updateReport
+      tags: [reports]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportUpdate"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /reports/{id}/status:
+    patch:
+      operationId: updateReportStatus
+      tags: [reports]
+      summary: Update report status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportStatusUpdate"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /reports/{id}/feedback:
+    post:
+      operationId: submitReportFeedback
+      tags: [reports]
+      summary: Submit student feedback on a resolved report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "200":
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  # --- MEMBERS ---
+  /members:
+    get:
+      operationId: listMembers
+      tags: [members]
+      summary: List Peace Forum members
+      parameters:
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: position
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+    post:
+      operationId: createMember
+      tags: [members]
+      summary: Add a student as a Peace Forum member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberInput"
+      responses:
+        "201":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  /members/{id}:
+    get:
+      operationId: getMember
+      tags: [members]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+    patch:
+      operationId: updateMember
+      tags: [members]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+    delete:
+      operationId: deleteMember
+      tags: [members]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /members/link/{uniqueLink}:
+    get:
+      operationId: getMemberByLink
+      tags: [members]
+      summary: Get member by unique profile link
+      parameters:
+        - name: uniqueLink
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Member profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "403":
+          description: Access denied
+        "404":
+          description: Not found
+
+  /members/{id}/regenerate-link:
+    post:
+      operationId: regenerateMemberLink
+      tags: [members]
+      summary: Regenerate a member's unique profile link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New link generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  # --- TASKS ---
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - name: assigned_to
+          in: query
+          schema:
+            type: string
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Assign a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  # --- ANNOUNCEMENTS ---
+  /announcements:
+    get:
+      operationId: listAnnouncements
+      tags: [announcements]
+      summary: List announcements
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+    post:
+      operationId: createAnnouncement
+      tags: [announcements]
+      summary: Post an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementInput"
+      responses:
+        "201":
+          description: Announcement created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+
+  /announcements/{id}:
+    get:
+      operationId: getAnnouncement
+      tags: [announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Announcement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+    patch:
+      operationId: updateAnnouncement
+      tags: [announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+    delete:
+      operationId: deleteAnnouncement
+      tags: [announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # --- EVENTS ---
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /events/{id}/register:
+    post:
+      operationId: registerForEvent
+      tags: [events]
+      summary: Register for an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Registered
+
+  # --- ATTENDANCE ---
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: List attendance records
+      parameters:
+        - name: event_id
+          in: query
+          schema:
+            type: integer
+        - name: member_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+    post:
+      operationId: recordAttendance
+      tags: [attendance]
+      summary: Record attendance for an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "201":
+          description: Attendance recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+
+  # --- DELEGATIONS ---
+  /delegations:
+    get:
+      operationId: listDelegations
+      tags: [delegations]
+      summary: List permission delegations
+      responses:
+        "200":
+          description: List of delegations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Delegation"
+    post:
+      operationId: createDelegation
+      tags: [delegations]
+      summary: Delegate a permission to an executive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DelegationInput"
+      responses:
+        "201":
+          description: Permission delegated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Delegation"
+
+  /delegations/{id}/revoke:
+    post:
+      operationId: revokeDelegation
+      tags: [delegations]
+      summary: Revoke a delegated permission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Delegation"
+
+  # --- NOTIFICATIONS ---
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: Get current user's notifications
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Marked as read
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+
+  # --- ANALYTICS ---
+  /analytics/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [analytics]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /analytics/reports-summary:
+    get:
+      operationId: getReportsSummary
+      tags: [analytics]
+      summary: Get reports summary by status and department
+      responses:
+        "200":
+          description: Reports summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportsSummary"
+
+  /analytics/member-activity:
+    get:
+      operationId: getMemberActivity
+      tags: [analytics]
+      summary: Get member activity stats
+      responses:
+        "200":
+          description: Member activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberActivity"
+
+  /analytics/public-stats:
+    get:
+      operationId: getPublicStats
+      tags: [analytics]
+      summary: Get public anonymized statistics
+      responses:
+        "200":
+          description: Public stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicStats"
+
+  /analytics/department-performance:
+    get:
+      operationId: getDepartmentPerformance
+      tags: [analytics]
+      summary: Get department performance comparison
+      responses:
+        "200":
+          description: Department performance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeptPerformance"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    # --- AUTH ---
+    RegisterInput:
+      type: object
+      required: [full_name, email, password, student_id, phone, department_id, id_front_url, id_back_url]
+      properties:
+        full_name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        student_id:
+          type: string
+        phone:
+          type: string
+        department_id:
+          type: integer
+        id_front_url:
+          type: string
+        id_back_url:
+          type: string
+        profile_photo:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, access_token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        access_token:
+          type: string
+        refresh_token:
+          type: ["string", "null"]
+
+    TokenResponse:
+      type: object
+      required: [access_token]
+      properties:
+        access_token:
+          type: string
+
+    # --- USER ---
+    User:
+      type: object
+      required: [user_id, full_name, email, role, student_id, is_approved, is_active, created_at]
+      properties:
+        user_id:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, member, executive, president, higher_official]
+        student_id:
+          type: string
+        phone:
+          type: string
+        department_id:
+          type: ["integer", "null"]
+        department_name:
+          type: ["string", "null"]
+        profile_photo:
+          type: ["string", "null"]
+        id_front_url:
+          type: ["string", "null"]
+        id_back_url:
+          type: ["string", "null"]
+        is_approved:
+          type: boolean
+        is_active:
+          type: boolean
+        rejection_reason:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        full_name:
+          type: string
+        phone:
+          type: string
+        department_id:
+          type: integer
+        profile_photo:
+          type: string
+        role:
+          type: string
+        is_active:
+          type: boolean
+
+    RejectKycInput:
+      type: object
+      required: [rejection_reason]
+      properties:
+        rejection_reason:
+          type: string
+          minLength: 20
+
+    # --- DEPARTMENT ---
+    Department:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        executive_id:
+          type: ["string", "null"]
+        executive_name:
+          type: ["string", "null"]
+        member_count:
+          type: integer
+        report_count:
+          type: integer
+
+    DepartmentInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        executive_id:
+          type: string
+
+    DepartmentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        executive_id:
+          type: string
+
+    # --- REPORT ---
+    Report:
+      type: object
+      required: [report_id, department_id, title, description, location, incident_date, category, status, is_anonymous, created_at]
+      properties:
+        report_id:
+          type: string
+        student_id:
+          type: ["string", "null"]
+        student_name:
+          type: ["string", "null"]
+        department_id:
+          type: integer
+        department_name:
+          type: ["string", "null"]
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        incident_date:
+          type: string
+        category:
+          type: string
+          enum: [physical, verbal, property, mental_health, other]
+        status:
+          type: string
+          enum: [pending, in_progress, on_hold, resolved, rejected, escalated]
+        evidence_urls:
+          type: array
+          items:
+            type: string
+        is_anonymous:
+          type: boolean
+        resolved_by:
+          type: ["string", "null"]
+        resolution_summary:
+          type: ["string", "null"]
+        rejection_reason:
+          type: ["string", "null"]
+        executive_notes:
+          type: ["string", "null"]
+        president_notes:
+          type: ["string", "null"]
+        feedback_rating:
+          type: ["integer", "null"]
+        feedback_comment:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    ReportInput:
+      type: object
+      required: [department_id, title, description, location, incident_date, category]
+      properties:
+        department_id:
+          type: integer
+        title:
+          type: string
+          minLength: 10
+          maxLength: 200
+        description:
+          type: string
+          minLength: 50
+          maxLength: 2000
+        location:
+          type: string
+        incident_date:
+          type: string
+        category:
+          type: string
+          enum: [physical, verbal, property, mental_health, other]
+        is_anonymous:
+          type: boolean
+        evidence_urls:
+          type: array
+          items:
+            type: string
+
+    ReportUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        executive_notes:
+          type: string
+        president_notes:
+          type: string
+        resolution_summary:
+          type: string
+
+    ReportStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, on_hold, resolved, rejected, escalated]
+        reason:
+          type: string
+        resolution_summary:
+          type: string
+        executive_notes:
+          type: string
+
+    FeedbackInput:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+
+    # --- MEMBER ---
+    Member:
+      type: object
+      required: [member_id, user_id, position, department_id, join_date, unique_link, is_active, created_at]
+      properties:
+        member_id:
+          type: string
+        user_id:
+          type: string
+        full_name:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        profile_photo:
+          type: ["string", "null"]
+        position:
+          type: string
+          enum: [member, secretary, coordinator, vice_president, president]
+        department_id:
+          type: integer
+        department_name:
+          type: ["string", "null"]
+        join_date:
+          type: string
+        unique_link:
+          type: string
+        link_expiry:
+          type: ["string", "null"]
+        responsibilities:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+
+    MemberInput:
+      type: object
+      required: [user_id, position, department_id, join_date]
+      properties:
+        user_id:
+          type: string
+        position:
+          type: string
+          enum: [member, secretary, coordinator, vice_president, president]
+        department_id:
+          type: integer
+        join_date:
+          type: string
+        responsibilities:
+          type: string
+        link_expiry:
+          type: string
+
+    MemberUpdate:
+      type: object
+      properties:
+        position:
+          type: string
+        department_id:
+          type: integer
+        responsibilities:
+          type: string
+        is_active:
+          type: boolean
+        link_expiry:
+          type: string
+
+    # --- TASK ---
+    Task:
+      type: object
+      required: [task_id, title, description, assigned_to, assigned_by, priority, status, created_at]
+      properties:
+        task_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        assigned_to:
+          type: string
+        assigned_to_name:
+          type: ["string", "null"]
+        assigned_by:
+          type: string
+        assigned_by_name:
+          type: ["string", "null"]
+        department_id:
+          type: ["integer", "null"]
+        department_name:
+          type: ["string", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, cancelled]
+        due_date:
+          type: ["string", "null"]
+        related_report_id:
+          type: ["string", "null"]
+        completed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    TaskInput:
+      type: object
+      required: [title, description, assigned_to, priority]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        assigned_to:
+          type: string
+        department_id:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        due_date:
+          type: string
+        related_report_id:
+          type: string
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, cancelled]
+        priority:
+          type: string
+        due_date:
+          type: string
+
+    # --- ANNOUNCEMENT ---
+    Announcement:
+      type: object
+      required: [id, title, content, type, author_id, created_at]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [public, members_only, department, executive, urgent]
+        department_id:
+          type: ["integer", "null"]
+        department_name:
+          type: ["string", "null"]
+        author_id:
+          type: string
+        author_name:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    AnnouncementInput:
+      type: object
+      required: [title, content, type]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [public, members_only, department, executive, urgent]
+        department_id:
+          type: integer
+
+    AnnouncementUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+
+    # --- EVENT ---
+    Event:
+      type: object
+      required: [id, name, event_date, location, created_by, created_at]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        event_date:
+          type: string
+        location:
+          type: string
+        max_attendees:
+          type: ["integer", "null"]
+        target_audience:
+          type: string
+          enum: [all, members, executives]
+        created_by:
+          type: string
+        created_by_name:
+          type: ["string", "null"]
+        attendee_count:
+          type: integer
+        created_at:
+          type: string
+
+    EventInput:
+      type: object
+      required: [name, event_date, location, target_audience]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+        location:
+          type: string
+        max_attendees:
+          type: integer
+        target_audience:
+          type: string
+          enum: [all, members, executives]
+
+    EventUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+        location:
+          type: string
+        max_attendees:
+          type: integer
+
+    # --- ATTENDANCE ---
+    AttendanceRecord:
+      type: object
+      required: [id, event_id, member_id, status, created_at]
+      properties:
+        id:
+          type: integer
+        event_id:
+          type: integer
+        event_name:
+          type: ["string", "null"]
+        member_id:
+          type: string
+        member_name:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [present, absent, excused]
+        notes:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    AttendanceInput:
+      type: object
+      required: [event_id, member_id, status]
+      properties:
+        event_id:
+          type: integer
+        member_id:
+          type: string
+        status:
+          type: string
+          enum: [present, absent, excused]
+        notes:
+          type: string
+
+    # --- DELEGATION ---
+    Delegation:
+      type: object
+      required: [delegation_id, granted_by, granted_to, permission, is_active, created_at]
+      properties:
+        delegation_id:
+          type: string
+        granted_by:
+          type: string
+        granted_by_name:
+          type: ["string", "null"]
+        granted_to:
+          type: string
+        granted_to_name:
+          type: ["string", "null"]
+        permission:
+          type: string
+          enum: [kyc_approval, member_edit, case_reassign, announcement, data_export]
+        expires_at:
+          type: ["string", "null"]
+        is_active:
+          type: boolean
+        revoked_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    DelegationInput:
+      type: object
+      required: [granted_to, permission]
+      properties:
+        granted_to:
+          type: string
+        permission:
+          type: string
+          enum: [kyc_approval, member_edit, case_reassign, announcement, data_export]
+        expires_at:
+          type: string
+
+    # --- NOTIFICATION ---
+    Notification:
+      type: object
+      required: [id, user_id, type, title, message, is_read, created_at]
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        type:
+          type: string
+          enum: [new_report, status_update, task_assigned, announcement, kyc_result, general]
+        title:
+          type: string
+        message:
+          type: string
+        related_id:
+          type: ["string", "null"]
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+
+    # --- ANALYTICS ---
+    DashboardStats:
+      type: object
+      required: [total_reports, pending_reports, in_progress_reports, resolved_reports, total_members, active_members, pending_kyc, total_tasks, upcoming_events]
+      properties:
+        total_reports:
+          type: integer
+        pending_reports:
+          type: integer
+        in_progress_reports:
+          type: integer
+        resolved_reports:
+          type: integer
+        total_members:
+          type: integer
+        active_members:
+          type: integer
+        pending_kyc:
+          type: integer
+        total_tasks:
+          type: integer
+        upcoming_events:
+          type: integer
+        resolution_rate:
+          type: number
+
+    ReportsSummary:
+      type: object
+      required: [by_status, by_category, by_department, recent_reports]
+      properties:
+        by_status:
+          type: array
+          items:
+            type: object
+            required: [status, count]
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+        by_category:
+          type: array
+          items:
+            type: object
+            required: [category, count]
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+        by_department:
+          type: array
+          items:
+            type: object
+            required: [department_name, count]
+            properties:
+              department_name:
+                type: string
+              count:
+                type: integer
+        recent_reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/Report"
+
+    MemberActivity:
+      type: object
+      required: [new_joins_this_month, active_members, positions_breakdown]
+      properties:
+        new_joins_this_month:
+          type: integer
+        active_members:
+          type: integer
+        positions_breakdown:
+          type: array
+          items:
+            type: object
+            required: [position, count]
+            properties:
+              position:
+                type: string
+              count:
+                type: integer
+
+    PublicStats:
+      type: object
+      required: [total_members, resolved_cases, active_members, departments]
+      properties:
+        total_members:
+          type: integer
+        resolved_cases:
+          type: integer
+        active_members:
+          type: integer
+        departments:
+          type: integer
+
+    DeptPerformance:
+      type: object
+      required: [department_name, total_cases, resolved_cases, pending_cases, resolution_rate, avg_resolution_days]
+      properties:
+        department_name:
+          type: string
+        total_cases:
+          type: integer
+        resolved_cases:
+          type: integer
+        pending_cases:
+          type: integer
+        resolution_rate:
+          type: number
+        avg_resolution_days:
+          type: number
